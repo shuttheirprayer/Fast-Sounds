@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.misanthropy.linggango.fastsounds.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "fastsounds.refmap.json",
+  "mixins": [
+  ],
+  "client": [
+    "SoundEngineMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}

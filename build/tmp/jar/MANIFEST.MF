@@ -1,0 +1,10 @@
+Manifest-Version: 1.0
+Specification-Title: fastsounds
+Specification-Vendor: 
+Specification-Version: 1
+Implementation-Title: fastsounds
+Implementation-Version: 0.1
+Implementation-Vendor: 
+Implementation-Timestamp: 2026-06-13T21:46:00+0300
+MixinConfigs: fastsounds.mixins.json
+

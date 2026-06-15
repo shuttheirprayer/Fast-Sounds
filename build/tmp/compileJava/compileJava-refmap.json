@@ -1,0 +1,14 @@
+{
+  "mappings": {
+    "com/misanthropy/linggango/fastsounds/mixin/SoundEngineMixin": {
+      "play": "Lnet/minecraft/client/sounds/SoundEngine;m_120312_(Lnet/minecraft/client/resources/sounds/SoundInstance;)V"
+    }
+  },
+  "data": {
+    "searge": {
+      "com/misanthropy/linggango/fastsounds/mixin/SoundEngineMixin": {
+        "play": "Lnet/minecraft/client/sounds/SoundEngine;m_120312_(Lnet/minecraft/client/resources/sounds/SoundInstance;)V"
+      }
+    }
+  }
+}
