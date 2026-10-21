@@ -1,6 +1,0 @@
-
-[general]
-	enableDynamicMixing = true
-	#Range: 8 ~ 245
-	maxConcurrentSounds = 230
-

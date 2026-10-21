@@ -60,9 +60,8 @@ public class SoundOptimizer {
         return true;
     }
 
-    private boolean isExempt(ResourceLocation soundId, List<? extends String> whitelist) {
+    private boolean isExempt(String idString, List<? extends String> whitelist) {
         if (whitelist == null || whitelist.isEmpty()) return false;
-        String idString = soundId.toString();
         for (String entry : whitelist) {
             if (idString.contains(entry)) {
                 return true;
@@ -73,8 +72,6 @@ public class SoundOptimizer {
 
     public synchronized boolean shouldPlaySound(SoundInstance sound) {
         if (sound == null) return false;
-
-        sound.getSound();
 
         SoundSource source = sound.getSource();
 
@@ -91,9 +88,11 @@ public class SoundOptimizer {
         String path = soundId.getPath();
         if (isCriticalSound(path)) return true;
 
+        String idString = soundId.toString();
+
         float volume = sound.getVolume();
         if (Config.enableVolumeCull && volume < 0.05f) {
-            if (!isExempt(soundId, Config.volumeCullWhitelist)) {
+            if (!isExempt(idString, Config.volumeCullWhitelist)) {
                 return false;
             }
         }
@@ -103,7 +102,7 @@ public class SoundOptimizer {
         double z = sound.getZ();
 
         if (Config.enableDistanceCull) {
-            if (!isExempt(soundId, Config.distanceCullWhitelist)) {
+            if (!isExempt(idString, Config.distanceCullWhitelist)) {
                 LocalPlayer player = Minecraft.getInstance().player;
 
                 if (player != null) {
@@ -115,24 +114,27 @@ public class SoundOptimizer {
         }
 
         if (source == SoundSource.HOSTILE || source == SoundSource.NEUTRAL ||
-                source == SoundSource.PLAYERS || source == SoundSource.BLOCKS) {
+                source == SoundSource.PLAYERS || source == SoundSource.BLOCKS ||
+                source == SoundSource.AMBIENT || source == SoundSource.WEATHER) {
 
             int gridX = (int) x >> 2;
             int gridZ = (int) z >> 2;
-            long batchKey = ((long) soundId.hashCode() << 32) | ((long) (gridX & 0xFFFF) << 16) | (gridZ & 0xFFFFL);
+            long batchKey = ((long) soundId.hashCode() * 0x9E3779B97F4A7C15L)
+                    ^ ((long) gridX * 0x100000001B3L)
+                    ^ ((long) gridZ * 0xC2B2AE3D27D4EB4FL);
 
             long now = System.currentTimeMillis();
             long lastPlayed = recentSounds.get(batchKey);
             long cooldown = getCooldownForSource(source);
 
             if (lastPlayed != 0L && (now - lastPlayed) < cooldown) {
-                if (!isExempt(soundId, Config.cooldownWhitelist)) {
+                if (!isExempt(idString, Config.cooldownWhitelist)) {
                     return false;
                 }
             }
 
             if (Config.enableSameTickDedup) {
-                if (!isExempt(soundId, Config.sameTickWhitelist)) {
+                if (!isExempt(idString, Config.sameTickWhitelist)) {
                     if (refreshTickIfNeeded()) {
                         int count = tickSoundCounts.getInt(soundId);
                         if (count >= Config.maxSameTickSounds) return false;
@@ -154,7 +156,9 @@ public class SoundOptimizer {
         return false;
     }
 
-    public synchronized SoundInstance getSoundToEvict(SoundInstance[] activeSounds, Set<SoundInstance> exclude) {
+    public synchronized SoundInstance getSoundToEvict(Iterable<SoundInstance> activeSounds,
+                                                      Set<SoundInstance> exclude,
+                                                      SoundInstance incoming) {
         LocalPlayer player = Minecraft.getInstance().player;
         double maxDistSq = -1.0;
         SoundInstance furthestSound = null;
@@ -175,7 +179,7 @@ public class SoundOptimizer {
                 continue;
             }
 
-            if (isExempt(sound.getLocation(), Config.evictionWhitelist)) {
+            if (isExempt(sound.getLocation().toString(), Config.evictionWhitelist)) {
                 continue;
             }
 
@@ -193,7 +197,22 @@ public class SoundOptimizer {
                 }
             }
         }
-        return player != null ? furthestSound : fallbackSound;
+
+        if (player != null) {
+            // Only evict an existing sound if it is genuinely farther than the incoming
+            // one; otherwise it is better to drop the new (more distant) sound instead.
+            double incomingDistSq;
+            if (incoming != null && !incoming.isRelative()
+                    && incoming.getAttenuation() != SoundInstance.Attenuation.NONE) {
+                incomingDistSq = player.distanceToSqr(incoming.getX(), incoming.getY(), incoming.getZ());
+            } else {
+                incomingDistSq = -1.0; // relative / non-attenuated sounds count as closest
+            }
+            return (furthestSound != null && maxDistSq > incomingDistSq) ? furthestSound : null;
+        }
+
+        int incomingScore = incoming != null ? getPriorityScore(incoming.getSource()) : Integer.MAX_VALUE;
+        return (fallbackSound != null && lowestScore < incomingScore) ? fallbackSound : null;
     }
 
     private int getPriorityScore(SoundSource source) {

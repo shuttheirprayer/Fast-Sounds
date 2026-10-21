@@ -1,2 +1,0 @@
-com/misanthropy/linggango/fastsounds/mixin/SoundEngineMixin instanceToChannel f_120226_
-com/misanthropy/linggango/fastsounds/mixin/SoundEngineMixin stop (Lnet/minecraft/client/resources/sounds/SoundInstance;)V m_120274_

@@ -73,16 +73,14 @@ public abstract class SoundEngineMixin {
         }
 
         if (activeCount >= Config.maxConcurrentSounds) {
-            SoundInstance[] activeSoundsArray;
+            SoundInstance soundToKill;
             try {
-                activeSoundsArray = this.instanceToChannel.keySet().toArray(new SoundInstance[0]);
+                soundToKill = Fastsounds.OPTIMIZER.getSoundToEvict(
+                        this.instanceToChannel.keySet(), fastsounds$pendingEvictions, sound);
             } catch (Exception e) {
                 ci.cancel();
                 return;
             }
-
-            SoundInstance soundToKill = Fastsounds.OPTIMIZER.getSoundToEvict(
-                    activeSoundsArray, fastsounds$pendingEvictions);
 
             if (soundToKill != null) {
                 try {
@@ -149,7 +147,7 @@ public abstract class SoundEngineMixin {
             return handle.isStopped();
         }
 
-        if ((this.tickCount + handle.hashCode()) % Config.staggeredTickInterval == 0) {
+        if (Math.floorMod(this.tickCount + handle.hashCode(), Config.staggeredTickInterval) == 0) {
             return handle.isStopped();
         }
 
